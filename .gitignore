@@ -1,0 +1,11 @@
+# Nothing here should ever be committed, but belt and braces: the token cache
+# lives in /tmp and credentials live in the Keychain, so neither is in-tree.
+*.token
+.spotify-knob-token
+
+# Downloaded cover art, written to ~/.cache at runtime
+artcache/
+cache/
+
+.DS_Store
+docs.json
