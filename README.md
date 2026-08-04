@@ -1,58 +1,53 @@
 # SpotifyKnob
 
-A Hammerspoon Spoon that turns a cheap USB volume knob into a Spotify Connect
-controller, with a now-playing card that appears when you touch it.
+I bought a $30 volume knob and it turned out to be useless for what I wanted, so I
+wrote this. It's a Hammerspoon Spoon that makes the knob drive Spotify Connect,
+with a now playing card that shows up when you touch it.
 
-Built for the [Anticater VK-01](https://anticater.com), but the hardware is
-interchangeable — anything you can program to emit `F16`–`F20` will drive it.
+I built it for the [Anticater VK-01](https://anticater.com), but nothing here is
+specific to that knob. Anything you can program to send F16 through F20 will work.
 
 ![the card on light, dark and coloured backdrops](docs/backdrops-strip.png)
 
-*Three backdrops, three records. The card photographs whatever is behind it and
-measures that to pick its material, so it stays legible on a white document and
-on a dark desktop without you configuring anything. The vinyl and the progress
-bar take their colour from the artwork — crimson, orange, sand — because it is
-the same extracted colour driving both.*
+*Three backdrops, three records. The card reads what's behind it and picks its
+material, so it stays legible on a white doc or a dark desktop. The vinyl and the
+progress bar both take their colour from the cover art.*
 
 ## What it does
 
-- **Volume reaches your actual speaker.** Not the Mac's output — the knob drives
-  the volume of whichever Spotify Connect device is playing, over the Web API.
-- **A card that knows what's on**: cover art, title, artist, elapsed and
-  remaining, and the output device.
-- **Adaptive glass.** The card photographs and blurs whatever is behind it, then
-  measures that to pick light or dark material, so it stays legible on a white
-  document and on a dark desktop alike.
-- **A record**, tinted from the cover's own colour and translucent like coloured
-  vinyl — opaque black when the sleeve is dark, as a real pressing would be.
-- **Your keyboard's volume keys are untouched.** The knob and the keyboard drive
-  different things, permanently.
+Turn the knob and you change the volume of whatever Connect speaker is playing,
+not your Mac's output. That distinction is the whole reason this exists. Press to
+play or pause. Long press and turn to skip.
 
-## Why a knob and not the media keys
+The card shows cover art, title, artist, how far into the track you are, how much
+is left, and which speaker it's coming out of. Your keyboard's volume keys keep
+working on your Mac, untouched.
 
-Out of the box the VK-01 emits `SOUND_UP` / `SOUND_DOWN` / `MUTE` at pid 0 —
-byte-identical to what your keyboard sends. There is no way to tell them apart
-at the event level, so intercepting those would hijack the keyboard too.
+## Why the knob needs reprogramming
 
-Instead the knob is reprogrammed to send `F16`–`F20`, which nothing else on
-macOS claims. That keeps the two input paths genuinely separate.
+Out of the box the VK-01 sends SOUND_UP, SOUND_DOWN and MUTE at pid 0. That is
+byte for byte what your keyboard sends when you hit the volume keys, so there's no
+way to tell them apart at the event level. Intercept those and you hijack the
+keyboard too.
+
+So the knob gets reprogrammed to send F16 through F20 instead, which nothing else
+on macOS claims. Two inputs, two jobs, no overlap.
 
 ## Requirements
 
-- macOS with [Hammerspoon](https://www.hammerspoon.org)
-- Python 3 (system Python is fine)
-- Spotify **Premium** — the Web API's playback endpoints require it
-- A knob that can be programmed to send F-keys
+macOS with [Hammerspoon](https://www.hammerspoon.org), Python 3 (system Python is
+fine), and Spotify Premium. The Premium part isn't a preference, the Web API's
+playback endpoints just refuse to work without it.
 
 ## Setup
 
 ### 1. Spotify credentials
 
-Create an app at the [Spotify developer
+Make an app in the [Spotify developer
 dashboard](https://developer.spotify.com/dashboard) and add
 `http://127.0.0.1:8888/callback` as a redirect URI.
 
-Credentials go in the macOS Keychain, never in a file:
+Credentials go in the macOS Keychain, not in a file:
 
 ```bash
 security add-generic-password -s spotify-knob -a client_id     -w 'YOUR_ID'
@@ -65,14 +60,13 @@ Then authorise once:
 ~/.hammerspoon/Spoons/SpotifyKnob.spoon/spotify-connect.py auth
 ```
 
-The refresh token is stored in the Keychain too. Nothing sensitive is ever
-written to the repo or to your Hammerspoon config.
+Your refresh token goes in the Keychain too. Nothing sensitive touches the repo or
+your Hammerspoon config.
 
 ### 2. Program the knob
 
-Connect it over **USB-C** — most of these knobs can only be reflashed while
-wired, even if they run over Bluetooth afterwards. In the vendor's config app,
-map:
+Plug it in over USB-C. Most of these knobs will only accept a new mapping while
+wired, even if they run over Bluetooth afterwards. In the vendor's config app:
 
 | Gesture | Send |
 |---|---|
@@ -82,8 +76,8 @@ map:
 | Long press + turn left | `F19` |
 | Long press + turn right | `F20` |
 
-Save to the device. The mapping lives on the knob, so it survives reboots and
-works over Bluetooth — but a factory reset wipes it.
+Save it to the device. The mapping lives on the knob, so it survives reboots and
+works fine over Bluetooth. A factory reset wipes it.
 
 ### 3. Install
 
@@ -104,14 +98,14 @@ spoon.SpotifyKnob:start()
 
 | Property | Default | What it does |
 |---|---|---|
-| `connectDevice` | `nil` | Substring matched against your Connect device names. Unset follows whatever is active. |
-| `step` / `fineStep` | `4` / `1` | Volume points per detent. Shift inverts which one you get. |
+| `connectDevice` | `nil` | Matched as a substring against your Connect device names. Leave it unset to follow whatever is currently playing. |
+| `step` / `fineStep` | `4` / `1` | Volume points per detent. Holding Shift swaps which one you get. |
 | `dwell` | `3.4` | Seconds the card stays up. |
 | `vinyl` | `true` | Draw the record behind the cover. |
-| `spinRate` | `0.42` | How fast the record's highlight travels, as a fraction of true platter speed. See below. |
-| `clickable` | `false` | Let the mouse work the transport. Off because skip lives on the knob, and a clickable card swallows clicks underneath it. |
+| `spinRate` | `0.42` | How fast the light travels across the record. See below. |
+| `clickable` | `false` | Let the mouse work the transport buttons. Off by default, see below. |
 
-Rebinding, if your hardware sends something else:
+If your hardware sends different keys:
 
 ```lua
 spoon.SpotifyKnob:bindHotkeys({
@@ -121,42 +115,49 @@ spoon.SpotifyKnob:bindHotkeys({
 })
 ```
 
-## Notes on a couple of decisions
+## Things I got wrong first
 
-**`spinRate` is not physically accurate, on purpose.** A real record's specular
-highlights barely move: the lamp and your eye are fixed, so the reflection sits
-still while the disc turns underneath it, and what you actually see rotating is
-the label. Since the label is hidden behind the sleeve here, modelling that
-faithfully produces a disc that looks parked. `0.42` is tuned to be read rather
-than to be right — about one revolution every four seconds, fast enough to
-notice and slow enough that it never strobes.
+**It used to wait for Spotify.** Every press went to the API and sat there for 300
+to 500ms before anything moved on screen. Long enough that you assume it didn't
+register and press again, which on a play/pause toggle undoes what you just did.
+Now the knob answers locally and reconciles with Spotify afterwards.
 
-**The card appears instantly and fades out.** No entrance animation: the knob is
-direct physical manipulation used dozens of times a day, and any fade on the way
-in reads as lag rather than polish. Leaving is the system retiring on its own,
-so that one is allowed to take its time.
+**It used to fade in.** I thought that was polish. It isn't. This is a physical
+control you touch dozens of times a day, and any fade on the way in is just lag
+sitting exactly where you're already looking. It appears instantly now. Only the
+exit fades, because that's the system leaving on its own and nobody's waiting on
+it.
 
-**Volume and play/pause answer locally and reconcile afterwards.** The Web API
-round-trip is 300–500ms; waiting for it made every press feel dead and invited a
-second press that undid the first.
+**The record used to spin at the right speed**, which was 33 rpm, and it looked
+awful. Real vinyl barely shows rotation: your lamp and your eyes are both fixed,
+so the reflection sits still while the disc turns under it. What you actually see
+spinning is the label, and the label is hidden behind the sleeve here. Modelling
+that faithfully gives you a disc that looks parked. `spinRate` is tuned to be read
+rather than to be right, about one turn every four seconds.
+
+**The transport buttons used to be clickable.** Then I moved skip onto the knob
+and they had nothing left to do, and a clickable card swallows every click landing
+underneath it for as long as it's on screen. They're a legend for your hands now.
+Set `clickable = true` if you want the mouse back.
 
 ## Limitations
 
-- **Spotify Premium only**, and the API has no push, so the card only appears
-  when you touch the knob — it can't announce a track change on its own.
-- **The equaliser bars and the record's highlight are not driven by audio.**
-  Spotify exposes no stream. They mean "sound is coming out of this", which is
-  what the idiom means everywhere; they are not a spectrum.
-- The blurred backdrop is a screen grab, so Hammerspoon needs Screen Recording
-  permission. Without it the card falls back to a solid fill.
+Spotify Premium only. The API has no push either, so the card can only appear when
+you touch the knob. It can't announce a track change on its own.
 
-## Third-party assets
+The equaliser bars and the light on the record aren't driven by audio. Spotify
+doesn't expose a stream. They mean "sound is coming out of this", the same way
+they do everywhere else, and they're not a spectrum analyser.
 
-Icons in `SpotifyKnob.spoon/icons/` are from
-[Phosphor](https://phosphoricons.com), MIT licensed, recoloured for the light
-and dark materials. Phosphor's licence is included at
+The blurred backdrop is a screen grab, so Hammerspoon needs Screen Recording
+permission. Without it the card falls back to a solid fill.
+
+## Third party assets
+
+Icons come from [Phosphor](https://phosphoricons.com), MIT licensed, recoloured to
+suit the light and dark materials. Their licence is at
 [icons/LICENSE](SpotifyKnob.spoon/icons/LICENSE).
 
 ## License
 
-MIT — see [LICENSE](LICENSE).
+MIT, see [LICENSE](LICENSE).
