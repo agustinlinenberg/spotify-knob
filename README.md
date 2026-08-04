@@ -1,8 +1,8 @@
 # SpotifyKnob
 
-I bought a $30 volume knob and it turned out to be useless for what I wanted, so I
-wrote this. It's a Hammerspoon Spoon that makes the knob drive Spotify Connect,
-with a now playing card that shows up when you touch it.
+Turn any programmable volume knob into a Spotify player for your Mac. A
+Hammerspoon Spoon that drives Spotify Connect from the knob, with a now playing
+card that shows up when you touch it.
 
 I built it for the [Anticater VK-01](https://anticater.com), but nothing here is
 specific to that knob. Anything you can program to send F16 through F20 will work.
