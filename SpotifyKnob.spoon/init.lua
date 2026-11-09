@@ -871,9 +871,15 @@ local function buildHud()
   -- -- a wide tinted one and a tight dark one -- collapsed into a single soft
   -- offset cast, which is all that survives at 72pt. Sits after the disc, so
   -- the sleeve correctly shades the record it is covering.
-  local artFrame = { x = PAD, y = PAD, w = ART, h = ART }
-  hud[ART_SHADOW] = { type = "rectangle", action = "skip", frame = artFrame,
-                      roundedRectRadii = { xRadius = ART_R, yRadius = ART_R },
+  -- Inset a point, and rounded harder to match. The plate has to be opaque for
+  -- anything to cast a shadow, but drawn at the artwork's exact frame the two
+  -- curves antialias against each other and the black underneath shows through
+  -- as a dark fringe along the edges, worst on the corners and obvious on a
+  -- pale sleeve. Shrinking it means the artwork covers it completely and the
+  -- shadow, which is soft and offset anyway, loses nothing.
+  local shadowFrame = { x = PAD + 1, y = PAD + 1, w = ART - 2, h = ART - 2 }
+  hud[ART_SHADOW] = { type = "rectangle", action = "skip", frame = shadowFrame,
+                      roundedRectRadii = { xRadius = ART_R + 1, yRadius = ART_R + 1 },
                       fillColor = { red = 0, green = 0, blue = 0, alpha = 1 },
                       withShadow = true,
                       shadow = { blurRadius = 14, offset = { h = -4, w = 0 },
@@ -1363,7 +1369,14 @@ local function refreshState(cb)
   bridge({ "state" }, function(code, out)
     local ok, s = pcall(hs.json.decode, out)
     if code == 0 and ok and type(s) == "table" then
-      device   = (s.device ~= "" and s.device) or "?"
+      -- Spotify sometimes hands back a speaker's raw ID where its name should
+      -- be, a 32-plus character hex blob, which is not a label anyone can use.
+      -- When that happens, prefer the name that was configured.
+      local dev = s.device or ""
+      if dev:match("^%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x+$") then
+        dev = CONNECT_DEVICE ~= "" and CONNECT_DEVICE or "Speaker"
+      end
+      device   = (dev ~= "" and dev) or "?"
       title    = s.title  or ""
       artist   = s.artist or ""
       playing  = s.playing == true
