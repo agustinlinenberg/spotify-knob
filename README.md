@@ -41,29 +41,48 @@ playback endpoints just refuse to work without it.
 
 ## Setup
 
-### 1. Spotify credentials
-
-Make an app in the [Spotify developer
+First make an app in the [Spotify developer
 dashboard](https://developer.spotify.com/dashboard) and add
-`http://127.0.0.1:8888/callback` as a redirect URI.
-
-Credentials go in the macOS Keychain, not in a file:
-
-```bash
-security add-generic-password -s spotify-knob -a client_id     -w 'YOUR_ID'
-security add-generic-password -s spotify-knob -a client_secret -w 'YOUR_SECRET'
-```
-
-Then authorise once:
+`http://127.0.0.1:8888/callback` as a redirect URI. Keep the client ID and secret
+to hand, the installer asks for them.
 
 ```bash
-~/.hammerspoon/Spoons/SpotifyKnob.spoon/spotify-connect.py auth
+git clone https://github.com/agustinlinenberg/spotify-knob ~/spotify-knob
+~/spotify-knob/install.sh
 ```
 
-Your refresh token goes in the Keychain too. Nothing sensitive touches the repo or
-your Hammerspoon config.
+That installs Hammerspoon if you don't have it, drops the Spoon in place, writes
+the config, puts your credentials in the Keychain and runs the Spotify
+authorisation. It's safe to run twice: an existing `init.lua` is backed up and
+appended to rather than replaced.
 
-### 2. Program the knob
+Three things it can't do for you, which it prints at the end:
+
+1. Give Hammerspoon **Accessibility** and **Screen Recording** in System Settings
+   under Privacy & Security. Screen Recording is what lets the card read the
+   desktop behind it and pick light or dark. Without it you get a flat fill.
+2. Plug the knob in and answer macOS's ANSI / ISO / JIS question. Pick ANSI, or
+   close the window. The knob only sends F16 to F20, which are the same on every
+   layout.
+3. Reload Config from the Hammerspoon menubar, then press the knob.
+
+Credentials live in the Keychain, never in a file. Nothing sensitive touches the
+repo or your Hammerspoon config.
+
+### Doing it by hand
+
+If you'd rather not run a script, the installer is short and readable:
+[install.sh](install.sh). The three steps it performs are storing two Keychain
+items, copying `SpotifyKnob.spoon` into `~/.hammerspoon/Spoons/`, and adding
+three lines to `~/.hammerspoon/init.lua`:
+
+```lua
+hs.loadSpoon("SpotifyKnob")
+spoon.SpotifyKnob.connectDevice = "Office"   -- your speaker's name
+spoon.SpotifyKnob:start()
+```
+
+### Programming the knob
 
 Plug it in over USB-C. Most of these knobs will only accept a new mapping while
 wired, even if they run over Bluetooth afterwards. In the vendor's config app:
@@ -76,23 +95,9 @@ wired, even if they run over Bluetooth afterwards. In the vendor's config app:
 | Long press + turn left | `F19` |
 | Long press + turn right | `F20` |
 
-Save it to the device. The mapping lives on the knob, so it survives reboots and
-works fine over Bluetooth. A factory reset wipes it.
-
-### 3. Install
-
-```bash
-git clone https://github.com/agustinlinenberg/spotify-knob
-cp -r spotify-knob/SpotifyKnob.spoon ~/.hammerspoon/Spoons/
-```
-
-In your `~/.hammerspoon/init.lua`:
-
-```lua
-hs.loadSpoon("SpotifyKnob")
-spoon.SpotifyKnob.connectDevice = "Office"   -- your speaker's name
-spoon.SpotifyKnob:start()
-```
+Save it to the device. The mapping lives on the knob, so it survives reboots,
+works fine over Bluetooth, and comes with you to a new machine. A factory reset
+wipes it.
 
 ## Configuration
 
