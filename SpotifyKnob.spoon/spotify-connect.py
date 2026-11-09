@@ -213,12 +213,35 @@ def cmd_devices():
 
 
 def find_device(needle):
+    """Resolve a device by name substring, or by its ID.
+
+    Spotify hands back some speakers with their raw ID sitting in the name
+    field, so a name match can never reach those. Matching the ID too means
+    you can configure the ID directly and still get there. Run `devices` to
+    see which ID is which, then put that ID in connectDevice.
+    """
     devices = api("GET", "/me/player/devices").get("devices", [])
+    needle_l = needle.lower()
+
+    # Exact ID first: it is unambiguous, and it is the only thing that works
+    # for a speaker reporting no usable name.
     for d in devices:
-        if needle.lower() in d["name"].lower():
+        if needle_l == d["id"].lower():
             return d
+
+    for d in devices:
+        if needle_l in d["name"].lower():
+            return d
+
+    # A partial ID, so a short prefix is enough to type.
+    for d in devices:
+        if len(needle_l) >= 6 and d["id"].lower().startswith(needle_l):
+            return d
+
     die("no Connect device matching %r. Available: %s"
-        % (needle, ", ".join(d["name"] for d in devices) or "none"))
+        % (needle,
+           ", ".join("%s (id=%s)" % (d["name"], d["id"]) for d in devices)
+           or "none"))
 
 
 def cmd_transfer(needle):

@@ -98,7 +98,8 @@ spoon.SpotifyKnob:start()
 
 | Property | Default | What it does |
 |---|---|---|
-| `connectDevice` | `nil` | Matched as a substring against your Connect device names. Leave it unset to follow whatever is currently playing. |
+| `connectDevice` | `nil` | Which speaker to drive. Matched as a substring against your Connect device names, or as a device ID. Leave it unset to follow whatever is currently playing. |
+| `deviceLabel` | `nil` | What the card prints when Spotify sends no usable device name. Set this when `connectDevice` is an ID. |
 | `step` / `fineStep` | `4` / `1` | Volume points per detent. Holding Shift swaps which one you get. |
 | `dwell` | `3.4` | Seconds the card stays up. |
 | `vinyl` | `true` | Draw the record behind the cover. |
@@ -151,6 +152,16 @@ they do everywhere else, and they're not a spectrum analyser.
 
 The blurred backdrop is a screen grab, so Hammerspoon needs Screen Recording
 permission. Without it the card falls back to a solid fill.
+
+Some speakers come back from the API with their raw ID sitting in the name field,
+so there is no name to match or to show. Run this to see what yours report:
+
+```bash
+~/.hammerspoon/Spoons/SpotifyKnob.spoon/spotify-connect.py devices
+```
+
+If yours is one of the nameless ones, put its ID in `connectDevice` and the name
+you want on screen in `deviceLabel`.
 
 ## Third party assets
 

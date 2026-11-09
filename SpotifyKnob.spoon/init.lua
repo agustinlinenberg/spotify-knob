@@ -22,9 +22,21 @@ obj.license  = "MIT - https://opensource.org/licenses/MIT"
 
 --- SpotifyKnob.connectDevice
 --- Variable
---- Substring matched against your Spotify Connect device names. Volume and
---- playback are routed here. Defaults to the currently active device if unset.
+--- Which Connect device to route volume and playback to. Matched as a
+--- substring against the device names, or as a device ID. Defaults to the
+--- currently active device if unset.
+---
+--- Some speakers report their raw ID in place of a name, which no name can
+--- match. Run `spotify-connect.py devices` to see the IDs and put the ID here
+--- instead, then set deviceLabel to whatever you want on screen.
 obj.connectDevice = nil
+
+--- SpotifyKnob.deviceLabel
+--- Variable
+--- What the card prints when Spotify gives no usable device name. Needed when
+--- connectDevice is an ID, since the ID itself is not a label. Default nil,
+--- which falls back to connectDevice and then to "Speaker".
+obj.deviceLabel = nil
 
 --- SpotifyKnob.vinyl
 --- Variable
@@ -60,6 +72,7 @@ local CACHE_DIR  = os.getenv("HOME") .. "/.cache/spotify-knob/"
 require("hs.ipc")             -- enables the `hs` command-line tool
 
 local CONNECT_DEVICE = obj.connectDevice or ""   -- see SpotifyKnob.connectDevice
+local DEVICE_LABEL   = obj.deviceLabel or ""     -- see SpotifyKnob.deviceLabel
 local STEP           = obj.step
 local FINE_STEP      = obj.fineStep
 local PUSH_DELAY     = 0.2       -- seconds; batch API writes while the knob spins
@@ -1372,9 +1385,20 @@ local function refreshState(cb)
       -- Spotify sometimes hands back a speaker's raw ID where its name should
       -- be, a 32-plus character hex blob, which is not a label anyone can use.
       -- When that happens, prefer the name that was configured.
+      local function unusable(n)
+        return n == "" or n:match("^%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x+$") ~= nil
+      end
       local dev = s.device or ""
-      if dev:match("^%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x+$") then
-        dev = CONNECT_DEVICE ~= "" and CONNECT_DEVICE or "Speaker"
+      if unusable(dev) then
+        -- deviceLabel first, because connectDevice may itself be an ID, and an
+        -- ID on the card is worse than saying nothing useful at all.
+        if DEVICE_LABEL ~= "" then
+          dev = DEVICE_LABEL
+        elseif not unusable(CONNECT_DEVICE) then
+          dev = CONNECT_DEVICE
+        else
+          dev = "Speaker"
+        end
       end
       device   = (dev ~= "" and dev) or "?"
       title    = s.title  or ""
